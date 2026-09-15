@@ -4,6 +4,10 @@ Aplicativo desktop em Python para analisar exportações XML de chamados, organi
 
 > Este repositório é uma versão demonstrativa e genérica do projeto. Ele não inclui dados reais, contatos, históricos, URLs internas ou exportações XML.
 
+![Interface demonstrativa do ChamadoFlow com dados fictícios](assets/images/chamadoflow-demo.png)
+
+*Imagem ilustrativa com dados inteiramente fictícios.*
+
 ## Funcionalidades
 
 - Leitura local de XMLs exportados por sistemas de chamados;
