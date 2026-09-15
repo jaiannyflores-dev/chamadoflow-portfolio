@@ -1,0 +1,23 @@
+# Dados de uso local e possíveis informações sensíveis.
+config.json
+contacts.csv
+data/
+xml/
+exports/
+*.xml
+
+# Ambientes, testes e artefatos de build.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.test-temp*/
+build/
+dist/
+release/
+.release-build-*/
+
+# Preferências locais.
+.vscode/
+.idea/
+*.log

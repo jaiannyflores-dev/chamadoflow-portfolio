@@ -1,0 +1,11 @@
+{
+  "chat": {
+    "base_url": "https://chat.google.com/"
+  },
+  "chrome": {
+    "caminhos": []
+  },
+  "jira": {
+    "base_url": "https://jira.example.com/browse/"
+  }
+}
