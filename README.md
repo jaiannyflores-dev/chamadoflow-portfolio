@@ -39,7 +39,7 @@ Copy-Item config.example.json config.json
 ## Gerar release portátil
 
 ```powershell
-.\build_release.ps1
+.\scripts\build_release.ps1
 ```
 
 O resultado é `release/ChamadoFlow-vX.Y.Z.zip`, pronto para ser anexado a uma GitHub Release. O pacote contém somente o executável, suas dependências, a configuração de exemplo e a documentação pública.

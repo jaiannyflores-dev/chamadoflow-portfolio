@@ -1,3 +1,7 @@
+$raizProjeto = Split-Path -Parent $PSScriptRoot
+Push-Location $raizProjeto
+
+try {
 $ErrorActionPreference = "Stop"
 
 $pythonApp = $env:CHAMADOFLOW_PYTHON
@@ -57,4 +61,8 @@ finally {
     @($pastaDistTemporaria, $pastaWorkTemporaria, $pastaSpecTemporaria) |
         Where-Object { Test-Path -LiteralPath $_ } |
         ForEach-Object { Remove-Item -LiteralPath $_ -Recurse -Force }
+}
+}
+finally {
+    Pop-Location
 }
