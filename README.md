@@ -30,6 +30,16 @@ Copy-Item config.example.json config.json
 
 `config.json` é local e não deve ser enviado ao Git.
 
+## Estrutura do projeto
+
+```text
+src/chamadoflow/   # código-fonte do aplicativo
+tests/             # testes automatizados
+scripts/           # build da versão demonstrativa
+assets/            # imagens usadas na documentação
+docs/              # documentos do projeto
+```
+
 ## Testes
 
 ```powershell
@@ -46,7 +56,7 @@ O resultado é `release/ChamadoFlow-vX.Y.Z.zip`, pronto para ser anexado a uma G
 
 ## Versionamento
 
-O projeto usa [Semantic Versioning](https://semver.org/lang/pt-BR/). A versão é definida exclusivamente em `versao.py`.
+O projeto usa [Semantic Versioning](https://semver.org/lang/pt-BR/). A versão é definida exclusivamente em `src/chamadoflow/versao.py`.
 
 ## Licença
 

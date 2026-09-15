@@ -13,7 +13,7 @@ if (-not (Test-Path -LiteralPath $pythonApp)) {
     throw "Python não encontrado. Crie o ambiente .venv ou defina CHAMADOFLOW_PYTHON."
 }
 
-$versaoApp = & $pythonApp -c "from versao import VERSAO; print(VERSAO)"
+$versaoApp = & $pythonApp -c "import sys; sys.path.insert(0, 'src'); from chamadoflow.versao import VERSAO; print(VERSAO)"
 $nomeRelease = "ChamadoFlow-v$versaoApp"
 $pastaRelease = Join-Path "release" $nomeRelease
 $arquivoZip = Join-Path "release" "$nomeRelease.zip"
@@ -23,7 +23,7 @@ $pastaWorkTemporaria = ".release-build-work"
 $pastaSpecTemporaria = ".release-build-spec"
 
 if ((Test-Path -LiteralPath $pastaRelease) -or (Test-Path -LiteralPath $arquivoZip)) {
-    throw "A release $nomeRelease já existe. Atualize a versão em versao.py antes de gerar outra."
+    throw "A release $nomeRelease já existe. Atualize a versão em src/chamadoflow/versao.py antes de gerar outra."
 }
 
 try {
@@ -34,6 +34,7 @@ try {
         --onedir `
         --name ChamadoFlow `
         --collect-data tzdata `
+        --paths src `
         --distpath $pastaDistTemporaria `
         --workpath $pastaWorkTemporaria `
         --specpath $pastaSpecTemporaria `

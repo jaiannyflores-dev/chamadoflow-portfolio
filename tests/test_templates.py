@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from templates import (
+from chamadoflow.templates import (
     MODELOS_ATUALIZACAO_JIRA,
     gerar_atualizacao_jira,
     gerar_mensagem_contato,
@@ -55,7 +55,7 @@ def test_mensagem_ao_aprovador_mantem_texto_generico():
     }
     analise = {"quem_precisa_agir": "Aprovador"}
 
-    with patch("templates._saudacao", return_value="Bom dia"):
+    with patch("chamadoflow.templates._saudacao", return_value="Bom dia"):
         mensagem = gerar_mensagem_contato(chamado, analise)
 
     assert "Falo em nome da Central de Serviços." in mensagem

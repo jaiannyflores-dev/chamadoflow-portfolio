@@ -1,4 +1,4 @@
-from contatos import (
+from chamadoflow.contatos import (
     atualizar_base,
     extrair_emails,
     localizar_contato_por_nome,

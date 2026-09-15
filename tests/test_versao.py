@@ -1,6 +1,6 @@
 import re
 
-from versao import NOME_APP, VERSAO, nome_completo_app
+from chamadoflow.versao import NOME_APP, VERSAO, nome_completo_app
 
 
 def test_versao_segue_semver():

@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from rules import (
+from chamadoflow.rules import (
     analisar_estado_contato,
     analisar_sla,
     analisar_strike,

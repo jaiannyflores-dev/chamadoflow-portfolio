@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from parser_xml import (
+from chamadoflow.parser_xml import (
     analisar_historico_equipes,
     extrair_campos_customizados,
     ler_xml,
