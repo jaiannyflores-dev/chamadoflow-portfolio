@@ -1,7 +1,7 @@
 """Fonte única da versão distribuída do ChamadoFlow."""
 
 NOME_APP = "ChamadoFlow"
-VERSAO = "0.1.0"
+VERSAO = "0.2.0"
 
 
 def nome_completo_app():

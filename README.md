@@ -14,6 +14,7 @@ Aplicativo desktop em Python para analisar exportações XML de chamados, organi
 - classificação de situação, prioridade e próxima ação;
 - regra configurável de Three Strikes e geração manual confirmada;
 - modelos de mensagem para demandante, aprovador e equipe responsável;
+- exportação das filas em Excel, com uma aba consolidada e outra para cada fila;
 - base de contatos local e opcional;
 - versionamento visível na janela, rodapé e no arquivo `VERSAO.txt` da release.
 

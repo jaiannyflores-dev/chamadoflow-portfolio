@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog, messagebox, simpledialog
 from pathlib import Path
 import subprocess
 import json
+import time
 from .parser_xml import ler_xml
 from .rules import analisar_chamado_operacional, converter_data
 from .templates import (
@@ -13,6 +14,7 @@ from .templates import (
     sugerir_objetivo,
 )
 from .contatos import atualizar_base, localizar_contato_por_nome, salvar_base
+from .excel_export import exportar_filas_para_excel
 from .paths import caminho_app
 from .versao import nome_completo_app
 
@@ -87,6 +89,16 @@ class HelpDeskAgent(tk.Tk):
         self.botao_resumo_responsaveis.pack(
             side="right",
             padx=(10, 0)
+        )
+        self.botao_exportar_excel = ttk.Button(
+            topo,
+            text="Exportar Excel",
+            command=self.exportar_excel_filas,
+            state="disabled",
+        )
+        self.botao_exportar_excel.pack(
+            side="right",
+            padx=(10, 0),
         )
         self.label_total = ttk.Label(
             topo,
@@ -866,6 +878,7 @@ class HelpDeskAgent(tk.Tk):
             self.botao_resumo_responsaveis.config(
                 state="normal"
             )
+            self.botao_exportar_excel.config(state="normal")
             self.atualizar_contadores()
             self.label_status.config(
                 text=(
@@ -927,6 +940,58 @@ class HelpDeskAgent(tk.Tk):
             )
 
         return chamados
+
+    def exportar_excel_filas(self):
+        if not self.resultados:
+            messagebox.showwarning(
+                "Exportar Excel",
+                "Analise pelo menos um XML antes de exportar.",
+            )
+            return
+
+        nome_arquivo = time.strftime("filas_%Y-%m-%d_%H%M.xlsx")
+        caminho = filedialog.asksaveasfilename(
+            title="Salvar filas em Excel",
+            initialdir=str(caminho_app("exports")),
+            initialfile=nome_arquivo,
+            defaultextension=".xlsx",
+            filetypes=[("Planilha Excel", "*.xlsx")],
+        )
+        if not caminho:
+            return
+
+        filas_por_chave = {}
+        for chamado in self.chamados:
+            chave = chamado.get("chave")
+            if not chave:
+                continue
+            filas = chamado.get("filas_origem") or [
+                chamado.get("fila_origem")
+            ]
+            if isinstance(filas, str):
+                filas = [filas]
+            for fila in filas:
+                fila = str(fila or "").strip()
+                if fila:
+                    filas_por_chave.setdefault(fila, []).append(chave)
+
+        try:
+            exportar_filas_para_excel(
+                caminho,
+                self.resultados,
+                self.chamados_por_chave,
+                filas_por_chave,
+            )
+        except OSError as erro:
+            messagebox.showerror("Erro ao exportar Excel", str(erro))
+            return
+
+        self.label_status.config(
+            text=(
+                "Excel exportado: uma aba consolidada e "
+                f"{len(filas_por_chave)} aba(s) por fila."
+            )
+        )
 
     def atualizar_contadores(self):
         contagens = {
