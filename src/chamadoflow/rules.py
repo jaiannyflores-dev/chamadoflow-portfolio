@@ -2,6 +2,7 @@ import re
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 from email.utils import parsedate_to_datetime
+from .jira_access import analisar_solicitacao_acesso_jira
 FUSO_BRASILIA = ZoneInfo("America/Sao_Paulo")
 INICIO_HORARIO_COMERCIAL = time(7, 0)
 FIM_HORARIO_COMERCIAL = time(18, 0)
@@ -1502,6 +1503,7 @@ def analisar_chamado_operacional(chamado):
     tempo = analisar_tempo(chamado)
     sla = analisar_sla(chamado)
     vip = identificar_vip(chamado)
+    triagem_acesso_jira = analisar_solicitacao_acesso_jira(chamado)
 
     situacao = analise.get(
         "situacao",
@@ -1653,6 +1655,12 @@ def analisar_chamado_operacional(chamado):
         else:
             prioridade = "Normal"
 
+    if triagem_acesso_jira["triagem_acesso_jira"]:
+        situacao = "Acesso Jira sem aprovação"
+        quem = "Aprovador" if triagem_acesso_jira["aprovador_jira_sugerido"] else "HelpDesk"
+        acao_final = triagem_acesso_jira["acao_acesso_jira"]
+        prioridade = "Alta"
+
     if sla["sla_estourado"]:
         prioridade = "SLA estourado"
 
@@ -1684,4 +1692,5 @@ def analisar_chamado_operacional(chamado):
         "confianca": analise.get("confianca"),
         "divergencia": analise.get("divergencia"),
         "requer_validacao_manual": validacao_manual,
+        **triagem_acesso_jira,
     }

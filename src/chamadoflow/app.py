@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import json
 import time
+from datetime import date
 from .parser_xml import ler_xml
 from .rules import analisar_chamado_operacional, converter_data
 from .templates import (
@@ -15,6 +16,15 @@ from .templates import (
 )
 from .contatos import atualizar_base, localizar_contato_por_nome, salvar_base
 from .excel_export import exportar_filas_para_excel
+from .relatorio_diario import (
+    carregar_historico,
+    criar_snapshot,
+    montar_relatorio,
+    registrar_fim,
+    registrar_inicio,
+    salvar_historico,
+    ultimo_fechamento_anterior,
+)
 from .paths import caminho_app
 from .versao import nome_completo_app
 
@@ -33,6 +43,9 @@ class HelpDeskAgent(tk.Tk):
         self.registros_por_iid = {}
         self.filtro_ativo = "todos"
         self.caminho_base_contatos = caminho_app("data", "contatos_chat.json")
+        self.caminho_historico_relatorio = caminho_app(
+            "data", "historico_relatorio_diario.json"
+        )
         self.base_contatos = {"contatos": {}}
         self.contato_chat_atual = None
         self.email_chat_atual = ""
@@ -100,6 +113,20 @@ class HelpDeskAgent(tk.Tk):
             side="right",
             padx=(10, 0),
         )
+        self.botao_gerar_relatorio = ttk.Button(
+            topo,
+            text="Gerar relatório diário",
+            command=self.gerar_relatorio_diario,
+            state="disabled",
+        )
+        self.botao_gerar_relatorio.pack(side="right", padx=(10, 0))
+        self.botao_registrar_inicio = ttk.Button(
+            topo,
+            text="Registrar início do dia",
+            command=self.registrar_inicio_do_dia,
+            state="disabled",
+        )
+        self.botao_registrar_inicio.pack(side="right", padx=(10, 0))
         self.label_total = ttk.Label(
             topo,
             text=""
@@ -116,6 +143,7 @@ class HelpDeskAgent(tk.Tk):
             ("alta", "Prioridade alta"),
             ("manual", "Validação manual"),
             ("sla", "SLA estourado"),
+            ("jira_sem_aprovacao", "Acesso Jira sem aprovação"),
         ):
             botao = ttk.Button(
                 self.frame_contadores,
@@ -511,6 +539,11 @@ class HelpDeskAgent(tk.Tk):
         self.label_detalhe_acao.pack(
             anchor="w"
         )
+        self.label_triagem_jira = ttk.Label(
+            frame_detalhes,
+            justify="left",
+            wraplength=1250,
+        )
         # Último comentário
         ttk.Label(
             frame_detalhes,
@@ -879,6 +912,8 @@ class HelpDeskAgent(tk.Tk):
                 state="normal"
             )
             self.botao_exportar_excel.config(state="normal")
+            self.botao_registrar_inicio.config(state="normal")
+            self.botao_gerar_relatorio.config(state="normal")
             self.atualizar_contadores()
             self.label_status.config(
                 text=(
@@ -993,6 +1028,124 @@ class HelpDeskAgent(tk.Tk):
             )
         )
 
+    def registrar_inicio_do_dia(self):
+        """Registra a fotografia inicial usada pelo relatório diário."""
+        if not self.chamados:
+            return
+
+        hoje = date.today()
+        historico = carregar_historico(self.caminho_historico_relatorio)
+        ja_registrado = bool(
+            historico.get("dias", {}).get(hoje.isoformat(), {}).get("inicio")
+        )
+        if ja_registrado and not messagebox.askyesno(
+            "Registrar início do dia",
+            "Já existe uma fotografia inicial para hoje. "
+            "Deseja substituí-la pela exportação atual?",
+        ):
+            return
+
+        registrar_inicio(
+            historico,
+            hoje,
+            criar_snapshot(self.chamados),
+            sobrescrever=ja_registrado,
+        )
+        try:
+            salvar_historico(self.caminho_historico_relatorio, historico)
+        except OSError as erro:
+            messagebox.showerror("Registrar início do dia", str(erro))
+            return
+        self.label_status.config(
+            text="Fotografia inicial do relatório diário registrada."
+        )
+
+    def gerar_relatorio_diario(self):
+        """Gera o relatório sem expor os identificadores dos chamados."""
+        if not self.chamados:
+            return
+
+        hoje = date.today()
+        historico = carregar_historico(self.caminho_historico_relatorio)
+        registro_hoje = historico.get("dias", {}).get(hoje.isoformat(), {})
+        inicio = registro_hoje.get("inicio")
+        base_inicio = "fotografia inicial registrada hoje"
+        if inicio is None:
+            data_anterior, fechamento_anterior = ultimo_fechamento_anterior(
+                historico,
+                hoje,
+            )
+            if fechamento_anterior is not None:
+                inicio = fechamento_anterior
+                base_inicio = f"fechamento anterior de {data_anterior}"
+            else:
+                registrar_inicio(historico, hoje, criar_snapshot(self.chamados))
+                try:
+                    salvar_historico(self.caminho_historico_relatorio, historico)
+                except OSError as erro:
+                    messagebox.showerror("Gerar relatório diário", str(erro))
+                    return
+                messagebox.showinfo(
+                    "Fotografia inicial registrada",
+                    "Ainda não há uma base inicial ou fechamento anterior. "
+                    "A exportação atual foi registrada como início do dia. "
+                    "Importe a exportação de fechamento e gere o relatório novamente.",
+                )
+                return
+
+        fim = criar_snapshot(self.chamados)
+        relatorio = montar_relatorio(
+            inicio,
+            fim,
+            self.chamados,
+            hoje,
+            base_inicio=base_inicio,
+        )
+        registrar_fim(historico, hoje, fim)
+        caminho_relatorio = caminho_app(
+            "exports",
+            f"relatorio_operacional_{hoje.isoformat()}.txt",
+        )
+        try:
+            salvar_historico(self.caminho_historico_relatorio, historico)
+            caminho_relatorio.parent.mkdir(parents=True, exist_ok=True)
+            caminho_relatorio.write_text(relatorio["texto"], encoding="utf-8")
+        except OSError as erro:
+            messagebox.showerror("Gerar relatório diário", str(erro))
+            return
+
+        self._mostrar_relatorio_diario(relatorio["texto"], caminho_relatorio)
+        self.label_status.config(
+            text=f"Relatório diário gerado: {caminho_relatorio.name}"
+        )
+
+    def _mostrar_relatorio_diario(self, texto_relatorio, caminho_relatorio):
+        janela = tk.Toplevel(self)
+        janela.title("Relatório operacional diário")
+        janela.geometry("860x680")
+        janela.minsize(620, 420)
+        janela.transient(self)
+        frame = ttk.Frame(janela, padding=12)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=f"Arquivo salvo em: {caminho_relatorio}").pack(
+            anchor="w", pady=(0, 8)
+        )
+        texto = tk.Text(frame, wrap="word", font=("Consolas", 10))
+        barra = ttk.Scrollbar(frame, orient="vertical", command=texto.yview)
+        texto.configure(yscrollcommand=barra.set)
+        texto.insert("1.0", texto_relatorio)
+        texto.configure(state="disabled")
+        texto.pack(side="left", fill="both", expand=True)
+        barra.pack(side="right", fill="y")
+        ttk.Button(
+            janela,
+            text="Copiar relatório",
+            command=lambda: self.copiar_para_area_transferencia(
+                texto_relatorio,
+                "Relatório operacional diário",
+            ),
+        ).pack(anchor="e", padx=12, pady=(0, 12))
+
     def atualizar_contadores(self):
         contagens = {
             "todos": len(self.resultados),
@@ -1009,6 +1162,10 @@ class HelpDeskAgent(tk.Tk):
                 item.get("prioridade") == "SLA estourado"
                 for item in self.resultados
             ),
+            "jira_sem_aprovacao": sum(
+                item.get("triagem_acesso_jira", False)
+                for item in self.resultados
+            ),
         }
         rotulos = {
             "todos": "Todos",
@@ -1016,6 +1173,7 @@ class HelpDeskAgent(tk.Tk):
             "alta": "Prioridade alta",
             "manual": "Validação manual",
             "sla": "SLA estourado",
+            "jira_sem_aprovacao": "Acesso Jira sem aprovação",
         }
 
         for codigo, botao in self.botoes_filtro.items():
@@ -1054,6 +1212,11 @@ class HelpDeskAgent(tk.Tk):
             return [
                 item for item in self.resultados
                 if item.get("prioridade") == "SLA estourado"
+            ]
+        if self.filtro_ativo == "jira_sem_aprovacao":
+            return [
+                item for item in self.resultados
+                if item.get("triagem_acesso_jira")
             ]
 
         return self.resultados
@@ -1310,6 +1473,7 @@ class HelpDeskAgent(tk.Tk):
         ).strip()
         aprovador_nome = (
             chamado.get("aprovador_nome")
+            or resultado.get("aprovador_jira_sugerido")
             or ""
         ).strip()
         destino_sugerido = self._determinar_destino_sugerido(
@@ -1395,6 +1559,18 @@ class HelpDeskAgent(tk.Tk):
                 ""
             )
         )
+        if resultado.get("triagem_acesso_jira"):
+            self.label_triagem_jira.config(
+                text=(
+                    "Triagem de acesso ao Jira\n"
+                    f"Tipo sugerido: {resultado.get('tipo_jira_sugerido') or 'Confirmar'}\n"
+                    f"Grupo sugerido: {resultado.get('grupo_jira_sugerido') or 'Confirmar'}\n"
+                    f"Aprovador: {resultado.get('aprovador_jira_sugerido') or 'Confirmar'}"
+                )
+            )
+            self.label_triagem_jira.pack(anchor="w", pady=(8, 0))
+        else:
+            self.label_triagem_jira.pack_forget()
         ultimo = chamado.get(
             "ultimo_comentario"
         ) or {}
@@ -1506,7 +1682,11 @@ class HelpDeskAgent(tk.Tk):
         return "Responsável"
     def _nome_por_destino(self, chamado, resultado, destino):
         if destino == "Aprovador":
-            return (chamado.get("aprovador_nome") or "").strip()
+            return (
+                chamado.get("aprovador_nome")
+                or resultado.get("aprovador_jira_sugerido")
+                or ""
+            ).strip()
         if destino == "Demandante":
             return (
                 chamado.get("solicitante_nome")
@@ -1644,7 +1824,12 @@ class HelpDeskAgent(tk.Tk):
         self.copiar_para_area_transferencia(nome, "Nome do solicitante")
     def copiar_aprovador(self):
         chamado = self.chamado_selecionado or {}
-        nome = (chamado.get("aprovador_nome") or "").strip()
+        resultado = self.resultado_selecionado or {}
+        nome = (
+            chamado.get("aprovador_nome")
+            or resultado.get("aprovador_jira_sugerido")
+            or ""
+        ).strip()
         self.copiar_para_area_transferencia(nome, "Nome do aprovador")
     def copiar_nome_chat(self):
         self.copiar_para_area_transferencia(

@@ -303,9 +303,11 @@ def extrair_chamado(item):
     chamado = {
         "chave": texto(item, "key"),
         "resumo": texto(item, "summary"),
+        "descricao": texto(item, "description"),
         "status": texto(item, "status"),
         "criado": texto(item, "created"),
         "atualizado": texto(item, "updated"),
+        "resolvido": texto(item, "resolved"),
 
         "responsavel": texto(item, "assignee"),
         "solicitante": texto(item, "reporter"),
@@ -324,6 +326,11 @@ def extrair_chamado(item):
         campos,
         "Aprovadores"
     ),
+
+        "justificativa": primeiro_valor(
+            campos,
+            "Justificativa"
+        ),
 
         # ID do criador do chamado.
         # Será usado para identificar quando um comentário

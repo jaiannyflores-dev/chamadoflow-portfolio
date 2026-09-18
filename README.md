@@ -15,6 +15,9 @@ Aplicativo desktop em Python para analisar exportações XML de chamados, organi
 - regra configurável de Three Strikes e geração manual confirmada;
 - modelos de mensagem para demandante, aprovador e equipe responsável;
 - exportação das filas em Excel, com uma aba consolidada e outra para cada fila;
+- relatório operacional diário com comparação de backlog, aprovações,
+  finalizações, reaberturas e transferências entre filas;
+- triagem de acessos ao Jira sem aprovação, com sugestão de grupo e aprovador;
 - base de contatos local e opcional;
 - versionamento visível na janela, rodapé e no arquivo `VERSAO.txt` da release.
 
@@ -30,6 +33,13 @@ Copy-Item config.example.json config.json
 ```
 
 `config.json` é local e não deve ser enviado ao Git.
+
+## Relatório operacional diário
+
+Importe uma exportação no início do expediente e use **Registrar início do
+dia**. No fechamento, importe a exportação atualizada e use **Gerar relatório
+diário**. O texto gerado contém apenas indicadores consolidados, sem exibir os
+identificadores dos chamados.
 
 ## Estrutura do projeto
 
